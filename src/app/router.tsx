@@ -20,5 +20,9 @@ export const router = createBrowserRouter([
       { path: "reports", element: <PlaceholderPage title="Reports & Analytics" /> },
       { path: "alerts", element: <PlaceholderPage title="Alerts & Notifications" /> }
     ]
-  }
-]);
+  },
+  
+],{
+  // ADD THIS OPTIONS OBJECT
+  basename: import.meta.env.BASE_URL 
+});

@@ -9,30 +9,7 @@ import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { useTheme } from "@mui/material/styles";
 import { alnuTheme } from "../theme/alnuTheme";
-
-type PatientRow = {
-  id: string;
-  name: string;
-  city: string;
-  state: string;
-  medication: string;
-  dose: string;
-  upcomingVisit: string;
-  lastVisit: string;
-  notes: string;
-};
-
-const rowsSeed: PatientRow[] = Array.from({ length: 18 }).map((_, i) => ({
-  id: String(1001 + i),
-  name: "Ben",
-  city: "Boston",
-  state: "MA",
-  medication: "Med",
-  dose: "1mg",
-  upcomingVisit: "02/02/2026",
-  lastVisit: "01/01/2026",
-  notes: "Med",
-}));
+import { patientRows, type PatientRow } from "../data/mockPatients";
 
 export default function PatientListPage() {
   const navigate = useNavigate();
@@ -177,7 +154,7 @@ export default function PatientListPage() {
     <PageShell title="Patient List" crumbs={crumbs}>
       <DataTable
         title={undefined}
-        rows={rowsSeed}
+        rows={patientRows}
         columns={columns}
         height={560}
         onAdd={() => console.log("Add")}

@@ -12,8 +12,13 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  Dialog,         // ✅ ADD THIS
+  DialogTitle,    // ✅ ADD THIS
+  DialogContent,  // ✅ ADD THIS
+  DialogActions   // ✅ ADD THIS
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useParams, useNavigate } from "react-router-dom";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import MicNoneOutlinedIcon from "@mui/icons-material/MicNoneOutlined";
@@ -23,6 +28,7 @@ import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownR
 import PageShell from "../components/PageShell";
 import DataTable from "../components/DataTable";
 import { alnuTheme } from "../theme/alnuTheme";
+import { patientProfiles, type RangeKey, type HistoryRow, type ChartDataPoint } from "../data/mockPatients";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 
@@ -37,6 +43,7 @@ import {
   Legend,
   BarChart,
   Bar,
+  LabelList,
 } from "recharts";
 
 /**
@@ -46,18 +53,6 @@ import {
 
 /* ---------------- Types ---------------- */
 
-type HistoryRow = {
-  id: string;
-  date: string;
-  medication: string;
-  dose: string;
-  effects: string;
-  patientSummary: string;
-  nutritionSummary: string;
-  adherenceSummary: string;
-};
-
-type RangeKey = "W" | "M" | "Y";
 type InsightTab =
   | "Weight & Dose"
   | "Side Effects"
@@ -68,265 +63,7 @@ type InsightTab =
 type ChatRole = "user" | "assistant";
 type ChatMessage = { id: string; role: ChatRole; text: string; ts: number };
 
-/* ---------------- Mock Data ---------------- */
-
-const historyRows: HistoryRow[] = [
-  {
-    id: "1",
-    date: "01/05/2026",
-    medication: "Med",
-    dose: "1mg",
-    effects: "Nausea mild",
-    patientSummary: "View More",
-    nutritionSummary: "View More",
-    adherenceSummary: "View More",
-  },
-  {
-    id: "2",
-    date: "12/22/2025",
-    medication: "Med",
-    dose: "1mg",
-    effects: "-",
-    patientSummary: "View More",
-    nutritionSummary: "View More",
-    adherenceSummary: "View More",
-  },
-  {
-    id: "3",
-    date: "12/08/2025",
-    medication: "Med",
-    dose: "1mg",
-    effects: "-",
-    patientSummary: "View More",
-    nutritionSummary: "View More",
-    adherenceSummary: "View More",
-  },
-  {
-    id: "4",
-    date: "12/08/2025",
-    medication: "Med",
-    dose: "1mg",
-    effects: "-",
-    patientSummary: "View More",
-    nutritionSummary: "View More",
-    adherenceSummary: "View More",
-  },
-];
-
-const chartDataByRange: Record<
-  RangeKey,
-  Array<{
-    label: string;
-    weight: number;
-    dose: number;
-    bmi: number;
-    sideEffectsCount: number;
-    waist: number;
-    hip: number;
-    calories: number;
-    protein: number;
-    carbs: number;
-  }>
-> = {
-  W: [
-    {
-      label: "Mon",
-      weight: 207,
-      dose: 5.0,
-      bmi: 30.1,
-      sideEffectsCount: 1,
-      waist: 41,
-      hip: 44,
-      calories: 2100,
-      protein: 95,
-      carbs: 240,
-    },
-    {
-      label: "Tue",
-      weight: 206.6,
-      dose: 5.0,
-      bmi: 30.0,
-      sideEffectsCount: 0,
-      waist: 40.8,
-      hip: 43.8,
-      calories: 1950,
-      protein: 110,
-      carbs: 210,
-    },
-    {
-      label: "Wed",
-      weight: 206.2,
-      dose: 5.0,
-      bmi: 29.9,
-      sideEffectsCount: 1,
-      waist: 40.7,
-      hip: 43.7,
-      calories: 2200,
-      protein: 85,
-      carbs: 270,
-    },
-    {
-      label: "Thu",
-      weight: 205.8,
-      dose: 5.0,
-      bmi: 29.8,
-      sideEffectsCount: 2,
-      waist: 40.6,
-      hip: 43.6,
-      calories: 2350,
-      protein: 80,
-      carbs: 290,
-    },
-    {
-      label: "Fri",
-      weight: 205.4,
-      dose: 5.0,
-      bmi: 29.7,
-      sideEffectsCount: 0,
-      waist: 40.5,
-      hip: 43.5,
-      calories: 2050,
-      protein: 120,
-      carbs: 200,
-    },
-    {
-      label: "Sat",
-      weight: 205.2,
-      dose: 5.0,
-      bmi: 29.6,
-      sideEffectsCount: 1,
-      waist: 40.4,
-      hip: 43.4,
-      calories: 1900,
-      protein: 130,
-      carbs: 180,
-    },
-    {
-      label: "Sun",
-      weight: 205.0,
-      dose: 5.0,
-      bmi: 29.6,
-      sideEffectsCount: 0,
-      waist: 40.4,
-      hip: 43.4,
-      calories: 2000,
-      protein: 125,
-      carbs: 190,
-    },
-  ],
-  M: [
-    {
-      label: "Jan",
-      weight: 200,
-      dose: 2.5,
-      bmi: 31.2,
-      sideEffectsCount: 2,
-      waist: 43,
-      hip: 46,
-      calories: 2350,
-      protein: 90,
-      carbs: 260,
-    },
-    {
-      label: "Feb",
-      weight: 197,
-      dose: 3.0,
-      bmi: 30.8,
-      sideEffectsCount: 1,
-      waist: 42.3,
-      hip: 45.4,
-      calories: 2250,
-      protein: 100,
-      carbs: 245,
-    },
-    {
-      label: "Mar",
-      weight: 198,
-      dose: 4.0,
-      bmi: 30.9,
-      sideEffectsCount: 1,
-      waist: 42.1,
-      hip: 45.2,
-      calories: 2300,
-      protein: 95,
-      carbs: 255,
-    },
-    {
-      label: "Apr",
-      weight: 206,
-      dose: 4.5,
-      bmi: 30.5,
-      sideEffectsCount: 2,
-      waist: 41.4,
-      hip: 44.6,
-      calories: 2400,
-      protein: 80,
-      carbs: 290,
-    },
-    {
-      label: "May",
-      weight: 218,
-      dose: 5.0,
-      bmi: 30.1,
-      sideEffectsCount: 3,
-      waist: 40.9,
-      hip: 44.1,
-      calories: 2550,
-      protein: 75,
-      carbs: 320,
-    },
-    {
-      label: "Jun",
-      weight: 205,
-      dose: 5.0,
-      bmi: 29.6,
-      sideEffectsCount: 1,
-      waist: 40.4,
-      hip: 43.4,
-      calories: 2100,
-      protein: 115,
-      carbs: 220,
-    },
-  ],
-  Y: [
-    {
-      label: "2025 Q3",
-      weight: 250,
-      dose: 1.0,
-      bmi: 36.2,
-      sideEffectsCount: 4,
-      waist: 47,
-      hip: 50,
-      calories: 2700,
-      protein: 70,
-      carbs: 340,
-    },
-    {
-      label: "2025 Q4",
-      weight: 230,
-      dose: 3.0,
-      bmi: 33.5,
-      sideEffectsCount: 3,
-      waist: 45,
-      hip: 48,
-      calories: 2550,
-      protein: 85,
-      carbs: 310,
-    },
-    {
-      label: "2026 Q1",
-      weight: 207,
-      dose: 5.0,
-      bmi: 30.1,
-      sideEffectsCount: 2,
-      waist: 41,
-      hip: 44,
-      calories: 2250,
-      protein: 105,
-      carbs: 250,
-    },
-  ],
-};
+/* (Mock data now lives in ../data/mockPatients.ts) */
 
 /* ---------------- UI Constants ---------------- */
 
@@ -353,11 +90,7 @@ const text = {
   },
 };
 
-const patient = {
-  name: "Max",
-  id: "#1001",
-  email: "max@alnuhealth.com", // set "" to verify no empty gap
-};
+/* patient data is now loaded dynamically via useParams + patientProfiles */
 
 /* ---------------- UI Helpers ---------------- */
 
@@ -403,7 +136,8 @@ const SummaryCard = ({ body }: { body: string }) => (
   <Paper
     elevation={0}
     sx={{
-      p: 2,
+      px: 2.5,
+      py: 2.25,
       borderRadius: 2,
       border: `1px solid ${alnuTheme.colors.border.light}`,
       bgcolor: "#fff",
@@ -417,7 +151,7 @@ const SummaryCard = ({ body }: { body: string }) => (
         fontSize: 14,
         fontWeight: 800,
         color: alnuTheme.colors.text.primary,
-        lineHeight: 1.4,
+        lineHeight: 1.5,
       }}
     >
       {body}
@@ -425,8 +159,8 @@ const SummaryCard = ({ body }: { body: string }) => (
   </Paper>
 );
 
-function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
-  const data = chartDataByRange[range];
+function InsightChart({ tab, range, chartData }: { tab: InsightTab; range: RangeKey; chartData: Record<RangeKey, ChartDataPoint[]> }) {
+  const data = chartData[range];
 
   const axisStyle = {
     fontSize: 12,
@@ -434,6 +168,29 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
   };
 
   const gridStroke = "rgba(0,0,0,0.08)";
+
+  const labelStyle = {
+    fontSize: 10,
+    fontWeight: 700,
+    fill: alnuTheme.colors.text.secondary,
+  } as const;
+
+  const dotStyle = (color: string) => ({
+    r: 3.5,
+    fill: color,
+    strokeWidth: 2,
+    stroke: "#fff",
+  });
+
+  const yDomain: [string, string] = (() => {
+    switch (tab) {
+      case "Weight & Dose":  return ["dataMin - 5", "dataMax + 10"];
+      case "BMI":            return ["dataMin - 1", "dataMax + 2"];
+      case "Body Measurements": return ["dataMin - 2", "dataMax + 3"];
+      case "Nutrition":      return ["dataMin - 80", "dataMax + 80"];
+      default:               return ["auto", "auto"];
+    }
+  })();
 
   return (
     <Paper
@@ -462,6 +219,7 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
+                domain={[0, "dataMax + 2"]}
               />
               <Tooltip />
               <Legend />
@@ -470,10 +228,12 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                 name="Side Effects"
                 fill={alnuTheme.colors.primary[500]}
                 radius={[6, 6, 0, 0]}
-              />
+              >
+                <LabelList dataKey="sideEffectsCount" position="top" style={labelStyle} />
+              </Bar>
             </BarChart>
-          ) : (
-            <LineChart data={data}>
+          ) : tab === "Weight & Dose" ? (
+            <LineChart data={data} margin={{ top: 20, right: 12, bottom: 4, left: 4 }}>
               <CartesianGrid stroke={gridStroke} vertical={false} />
               <XAxis
                 dataKey="label"
@@ -481,29 +241,67 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                 axisLine={false}
                 tickLine={false}
               />
-              <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+              <YAxis
+                yAxisId="weight"
+                tick={axisStyle}
+                axisLine={false}
+                tickLine={false}
+                domain={["dataMin - 5", "dataMax + 10"]}
+                label={{ value: "Weight (lbs)", angle: -90, position: "insideLeft", style: { fontSize: 11, fill: alnuTheme.colors.text.tertiary, fontWeight: 700 }, offset: 0 }}
+              />
+              <YAxis
+                yAxisId="dose"
+                orientation="right"
+                tick={axisStyle}
+                axisLine={false}
+                tickLine={false}
+                domain={[0, "dataMax + 2"]}
+                label={{ value: "Dose (mg)", angle: 90, position: "insideRight", style: { fontSize: 11, fill: alnuTheme.colors.text.tertiary, fontWeight: 700 }, offset: 0 }}
+              />
               <Tooltip />
               <Legend />
-              {tab === "Weight & Dose" && (
-                <>
-                  <Line
-                    type="monotone"
-                    dataKey="weight"
-                    name="Weight"
-                    stroke={alnuTheme.colors.primary[700]}
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="dose"
-                    name="Dose"
-                    stroke={alnuTheme.colors.primary[300]}
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                </>
-              )}
+              <Line
+                yAxisId="weight"
+                type="monotone"
+                dataKey="weight"
+                name="Weight (lbs)"
+                stroke={alnuTheme.colors.primary[700]}
+                strokeWidth={2.5}
+                dot={dotStyle(alnuTheme.colors.primary[700])}
+                activeDot={{ r: 5 }}
+              >
+                <LabelList dataKey="weight" position="top" style={labelStyle} />
+              </Line>
+              <Line
+                yAxisId="dose"
+                type="monotone"
+                dataKey="dose"
+                name="Dose (mg)"
+                stroke={alnuTheme.colors.primary[300]}
+                strokeWidth={2.5}
+                dot={dotStyle(alnuTheme.colors.primary[300])}
+                activeDot={{ r: 5 }}
+              >
+                <LabelList dataKey="dose" position="bottom" style={labelStyle} />
+              </Line>
+            </LineChart>
+          ) : (
+            <LineChart data={data} margin={{ top: 20, right: 12, bottom: 4, left: 4 }}>
+              <CartesianGrid stroke={gridStroke} vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={axisStyle}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={axisStyle}
+                axisLine={false}
+                tickLine={false}
+                domain={yDomain}
+              />
+              <Tooltip />
+              <Legend />
               {tab === "BMI" && (
                 <Line
                   type="monotone"
@@ -511,8 +309,11 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                   name="BMI"
                   stroke={alnuTheme.colors.primary[700]}
                   strokeWidth={2.5}
-                  dot={false}
-                />
+                  dot={dotStyle(alnuTheme.colors.primary[700])}
+                  activeDot={{ r: 5 }}
+                >
+                  <LabelList dataKey="bmi" position="top" style={labelStyle} />
+                </Line>
               )}
               {tab === "Body Measurements" && (
                 <>
@@ -522,16 +323,22 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                     name="Waist"
                     stroke={alnuTheme.colors.primary[700]}
                     strokeWidth={2.5}
-                    dot={false}
-                  />
+                    dot={dotStyle(alnuTheme.colors.primary[700])}
+                    activeDot={{ r: 5 }}
+                  >
+                    <LabelList dataKey="waist" position="top" style={labelStyle} />
+                  </Line>
                   <Line
                     type="monotone"
                     dataKey="hip"
                     name="Hip"
                     stroke={alnuTheme.colors.primary[300]}
                     strokeWidth={2.5}
-                    dot={false}
-                  />
+                    dot={dotStyle(alnuTheme.colors.primary[300])}
+                    activeDot={{ r: 5 }}
+                  >
+                    <LabelList dataKey="hip" position="bottom" style={labelStyle} />
+                  </Line>
                 </>
               )}
               {tab === "Nutrition" && (
@@ -542,15 +349,19 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                     name="Calories"
                     stroke={alnuTheme.colors.primary[700]}
                     strokeWidth={2.5}
-                    dot={false}
-                  />
+                    dot={dotStyle(alnuTheme.colors.primary[700])}
+                    activeDot={{ r: 5 }}
+                  >
+                    <LabelList dataKey="calories" position="top" style={labelStyle} />
+                  </Line>
                   <Line
                     type="monotone"
                     dataKey="protein"
                     name="Protein (g)"
                     stroke={alnuTheme.colors.primary[400]}
                     strokeWidth={2.5}
-                    dot={false}
+                    dot={dotStyle(alnuTheme.colors.primary[400])}
+                    activeDot={{ r: 5 }}
                   />
                   <Line
                     type="monotone"
@@ -558,7 +369,8 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
                     name="Carbs (g)"
                     stroke={alnuTheme.colors.primary[200]}
                     strokeWidth={2.5}
-                    dot={false}
+                    dot={dotStyle(alnuTheme.colors.primary[200])}
+                    activeDot={{ r: 5 }}
                   />
                 </>
               )}
@@ -572,7 +384,7 @@ function InsightChart({ tab, range }: { tab: InsightTab; range: RangeKey }) {
 
 /* ---------------- Chatbot (interactive) ---------------- */
 
-function buildBotReply(input: string): string {
+function buildBotReply(input: string, patientName: string): string {
   const q = input.trim().toLowerCase();
 
   if (
@@ -582,8 +394,8 @@ function buildBotReply(input: string): string {
     q.includes("last 4")
   ) {
     return (
-      "Overall Summary: Max’s intake over the past 3–4 days shows consistently low protein, higher refined carbs, and slightly elevated calories.\n\n" +
-      "What Max Ate:\n" +
+      `Overall Summary: ${patientName}’s intake over the past 3–4 days shows consistently low protein, higher refined carbs, and slightly elevated calories.\n\n` +
+      `What ${patientName} Ate:\n` +
       "Day 1: Bagel + cream cheese; chicken caesar wrap; chips; pasta alfredo\n" +
       "Day 2: Muffin + latte; BBQ chicken sandwich; granola bar; takeout pad thai\n" +
       "Day 3: Cereal + milk; burrito + chips; late-night cookies\n\n" +
@@ -641,7 +453,7 @@ function buildBotReply(input: string): string {
 // - Adds subtle background + hover to FAQ rows
 // - Keeps your expand arrow + “Ask this” button behavior
 
-function ChatBotPanel() {
+function ChatBotPanel({ patientName }: { patientName: string }) {
   const [draft, setDraft] = useState("");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
@@ -649,7 +461,7 @@ function ChatBotPanel() {
     {
       id: "m0",
       role: "assistant",
-      text: "Ask anything about Max’s trends (nutrition, adherence, side effects).",
+      text: `Ask anything about ${patientName}’s trends (nutrition, adherence, side effects).`,
       ts: Date.now(),
     },
   ]);
@@ -657,7 +469,7 @@ function ChatBotPanel() {
   const quickFaq = useMemo(
     () => [
       {
-        q: "What has Max eaten for the last 4 days?",
+        q: `What has ${patientName} eaten for the last 4 days?`,
         preview:
           "Summary: low protein + higher refined carbs. Quick win: add protein at breakfast + swap one snack for fruit/Greek yogurt.",
       },
@@ -703,7 +515,7 @@ function ChatBotPanel() {
     const botMsg: ChatMessage = {
       id: `a-${Date.now() + 1}`,
       role: "assistant",
-      text: buildBotReply(clean),
+      text: buildBotReply(clean, patientName),
       ts: Date.now() + 1,
     };
 
@@ -899,14 +711,14 @@ function ChatBotPanel() {
             </Box>
           </Paper>
 
-          {/* ✅ chat transcript (scrollable) */}
+          {/* chat transcript (scrollable) */}
           <Box
             sx={{
-              border: `1px solid ${alnuTheme.colors.border.light}`,
-              p: 1.25,
+              borderRadius: 2,
+              p: 1.5,
               flex: 1,
               minHeight: 140,
-              bgcolor: "rgba(0,0,0,0.01)",
+              bgcolor: alnuTheme.colors.background.secondary,
               ...scrollSx,
             }}
           >
@@ -918,21 +730,30 @@ function ChatBotPanel() {
                   sx={{
                     display: "flex",
                     justifyContent: isUser ? "flex-end" : "flex-start",
-                    mb: 1,
+                    mb: 1.25,
                   }}
                 >
                   <Box
                     sx={{
-                      maxWidth: "88%",
-                      px: 1.25,
-                      py: 0.9,
-                      borderRadius: 2,
+                      maxWidth: "85%",
+                      px: 1.5,
+                      py: 1,
                       whiteSpace: "pre-line",
                       fontSize: 13,
                       fontWeight: 700,
-                      border: `1px solid ${alnuTheme.colors.border.light}`,
-                      bgcolor: isUser ? "rgba(0,0,0,0.03)" : "#fff",
-                      color: alnuTheme.colors.text.primary,
+                      lineHeight: 1.45,
+                      borderRadius: isUser
+                        ? "16px 16px 4px 16px"
+                        : "16px 16px 16px 4px",
+                      bgcolor: isUser
+                        ? alnuTheme.colors.primary[950]
+                        : "#fff",
+                      color: isUser
+                        ? "#fff"
+                        : alnuTheme.colors.text.primary,
+                      boxShadow: isUser
+                        ? "none"
+                        : "0 1px 3px rgba(0,0,0,0.06)",
                     }}
                   >
                     {m.text}
@@ -988,15 +809,31 @@ function ChatBotPanel() {
 export default function PatientProfilePage() {
   const theme = useTheme();
   const isMdDown = useMediaQuery(theme.breakpoints.down("md"));
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const profile = id ? patientProfiles[id] : undefined;
+
+  if (!profile) {
+    return (
+      <PageShell title="Patient Profile" crumbs={[{ label: "Patient List", to: "/patients" }]}>
+        <Box sx={{ textAlign: "center", py: 8 }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 900, mb: 2 }}>Patient not found</Typography>
+          <Button variant="contained" onClick={() => navigate("/patients")}>
+            Back to Patient List
+          </Button>
+        </Box>
+      </PageShell>
+    );
+  }
 
   const crumbs = [
     { label: "Patient List", to: "/patients" },
     { label: "Patient Profile" },
-    { label: `${patient.name || "Patient"} - 1001` },
+    { label: `${profile.name} - ${profile.displayId}` },
   ];
+  const [modalConfig, setModalConfig] = useState({ open: false, title: "", content: "" });
 
-  const [historySelection, setHistorySelection] =
-    useState<GridRowSelectionModel>([]);
+  const [historySelection, setHistorySelection] = useState<GridRowSelectionModel>([]);
 
   const historyColumns: GridColDef<HistoryRow>[] = useMemo(
     () => [
@@ -1146,325 +983,309 @@ export default function PatientProfilePage() {
             bgcolor: "#fff",
             border: `1px solid ${alnuTheme.colors.border.light}`,
             borderRadius: 2,
-            p: { xs: 1.25, md: 2 },
+            p: { xs: 1.5, md: 2.5 },
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
           }}
         >
-          {/** ---- Standard typography tokens ---- */}
-          {/** (inline here so you can copy-paste; feel free to move outside) */}
+          {/* ── ROW 1: Identity header + Edit button ── */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              mb: 2,
+            }}
+          >
+            {/* Avatar */}
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                minWidth: 56,
+                borderRadius: "50%",
+                bgcolor: alnuTheme.colors.background.accent,
+                border: `1px solid ${alnuTheme.colors.border.light}`,
+                display: "grid",
+                placeItems: "center",
+                fontSize: 22,
+                fontWeight: 900,
+                color: alnuTheme.colors.text.primary,
+              }}
+            >
+              {profile.name[0].toUpperCase()}
+            </Box>
+
+            {/* Name / ID / Email */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
+                <Typography sx={{ fontSize: 18, fontWeight: 900, lineHeight: 1.2 }}>
+                  {profile.name}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: alnuTheme.colors.text.secondary,
+                  }}
+                >
+                  {profile.displayId}
+                </Typography>
+              </Box>
+              {!!profile.email && (
+                <Typography
+                  sx={{
+                    mt: 0.25,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: alnuTheme.colors.text.tertiary,
+                  }}
+                >
+                  {profile.email}
+                </Typography>
+              )}
+            </Box>
+
+            {/* Edit button */}
+            <Button
+              variant="contained"
+              startIcon={<EditOutlinedIcon />}
+              sx={{
+                bgcolor: alnuTheme.colors.primary[950],
+                "&:hover": { bgcolor: alnuTheme.colors.primary[900] },
+                textTransform: "none",
+                fontWeight: 900,
+                borderRadius: 999,
+                px: 2.25,
+                height: 40,
+                boxShadow: alnuTheme.shadows.md,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Edit Profile
+            </Button>
+          </Box>
+
+          <Divider />
+
+          {/* ── ROW 2: All stats in a dense flowing row ── */}
           {(() => {
-            const sectionTitleSx = {
-              fontSize: 16,
-              fontWeight: 900,
-              color: alnuTheme.colors.text.primary,
-              lineHeight: 1.2,
-            } as const;
-
-            const labelSx = {
-              fontSize: 12.5,
+            const lbl = {
+              fontSize: 11.5,
               fontWeight: 800,
-              color: alnuTheme.colors.text.secondary,
-              lineHeight: 1.2,
-            } as const;
-
-            const valueSx = {
-              fontSize: 15,
+              color: alnuTheme.colors.text.tertiary,
+              textTransform: "uppercase" as const,
+              letterSpacing: 0.3,
+              mb: 0.4,
+            };
+            const val = {
+              fontSize: 14.5,
               fontWeight: 900,
               color: alnuTheme.colors.text.primary,
               lineHeight: 1.25,
-            } as const;
-
-            const dividerSx = { mt: 1, mb: 1.5 } as const;
+            };
 
             return (
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: isMdDown ? "1fr" : "220px 1fr 320px",
-                  gap: { xs: 1.75, md: 2.25 },
-                  alignItems: "start",
+                  gridTemplateColumns: isMdDown
+                    ? "repeat(2, 1fr)"
+                    : "repeat(7, 1fr)",
+                  gap: { xs: 2, md: 0 },
+                  py: 2,
                 }}
               >
-                {/* LEFT: identity */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 1,
-                    pt: 0.5,
-                  }}
-                >
+                {[
+                  { label: "Sex", value: profile.sex },
+                  { label: "Age", value: String(profile.age) },
+                  { label: "Starting Wt", value: `${profile.startingWeight} lbs` },
+                  { label: "Current Wt", value: `${profile.currentWeight} lbs` },
+                  { label: "Total Loss", value: `${profile.totalWeightLoss} lbs` },
+                  { label: "Med. Start", value: profile.medicationStartDate },
+                  { label: "Adherence", value: profile.adherence },
+                ].map((s, i) => (
                   <Box
+                    key={s.label}
                     sx={{
-                      width: 124,
-                      height: 124,
-                      borderRadius: "50%",
-                      overflow: "hidden",
-                      border: `1px solid ${alnuTheme.colors.border.light}`,
-                      bgcolor: "#F3F5F4",
-                      display: "grid",
-                      placeItems: "center",
+                      px: { xs: 0, md: 2 },
+                      borderRight:
+                        !isMdDown && i < 6
+                          ? `1px solid ${alnuTheme.colors.border.light}`
+                          : "none",
+                      "&:first-of-type": { pl: 0 },
                     }}
                   >
-                    {/* Replace with <img /> if needed */}
-                    <Box
-                      sx={{
-                        width: "100%",
-                        height: "100%",
-                        bgcolor: "#F3F5F4",
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: 36,
-                        fontWeight: 900,
-                        color: alnuTheme.colors.text.primary,
-                      }}
-                    >
-                      {patient.name?.[0]?.toUpperCase() || "M"}
-                    </Box>
+                    <Typography sx={lbl}>{s.label}</Typography>
+                    <Typography sx={val}>{s.value}</Typography>
                   </Box>
-
-                  <Box sx={{ width: "100%", px: 2.25, textAlign: "left" }}>
-                    <Typography
-                      sx={{ fontSize: 18, fontWeight: 900, lineHeight: 1.15 }}
-                    >
-                      {patient.name || "Max"}
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        mt: 0.5,
-                        fontSize: 14,
-                        fontWeight: 900,
-                        color: alnuTheme.colors.text.secondary,
-                      }}
-                    >
-                      {patient.id || "#1001"}
-                    </Typography>
-
-                    {!!patient.email && (
-                      <Typography
-                        sx={{
-                          mt: 0.75,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: alnuTheme.colors.text.secondary,
-                        }}
-                      >
-                        {patient.email}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-
-                {/* MIDDLE: demographics + baseline */}
-                <Box sx={{ pt: 0.25 }}>
-                  <Typography sx={sectionTitleSx}>Demographics</Typography>
-                  <Divider sx={dividerSx} />
-
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: isMdDown ? "1fr" : "1fr 1fr",
-                      gap: 2.5,
-                      mb: 2.25,
-                    }}
-                  >
-                    <Box>
-                      <Typography sx={labelSx}>Sex</Typography>
-                      <Typography sx={valueSx}>Male</Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography sx={labelSx}>Age</Typography>
-                      <Typography sx={valueSx}>30</Typography>
-                    </Box>
-                  </Box>
-
-                  <Typography sx={sectionTitleSx}>Patient Baseline</Typography>
-                  <Divider sx={dividerSx} />
-                  {/* ✅ Weights in ONE row */}
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: isMdDown
-                        ? "1fr"
-                        : "repeat(3, minmax(0, 1fr))",
-                      gap: { xs: 2, md: 3 },
-                      mb: 2,
-                    }}
-                  >
-                    <Box>
-                      <Typography sx={labelSx}>Starting Weight</Typography>
-                      <Typography sx={valueSx}>250 lbs</Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography sx={labelSx}>Current Weight</Typography>
-                      <Typography sx={valueSx}>207 lbs</Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography sx={labelSx}>
-                        Total Body Weight Loss
-                      </Typography>
-                      <Typography sx={valueSx}>43 lbs</Typography>
-                    </Box>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: isMdDown
-                        ? "1fr"
-                        : "repeat(3, minmax(0, 1fr))",
-                      gap: { xs: 2, md: 3 },
-                      mb: 2,
-                    }}
-                  >
-                    <Box>
-                      <Typography sx={labelSx}>
-                        Medication Start Date
-                      </Typography>
-                      <Typography sx={valueSx}>21 September 2025</Typography>
-                    </Box>
-                    <Box>
-                      <Typography sx={labelSx}>Adherence</Typography>
-                      <Typography sx={valueSx}>92%</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-
-                {/* RIGHT: edit button + cards stacked + side effects below dose */}
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
-                >
-                  {/* Edit button */}
-                  <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<EditOutlinedIcon />}
-                      sx={{
-                        bgcolor: alnuTheme.colors.primary[950],
-                        "&:hover": { bgcolor: alnuTheme.colors.primary[900] },
-                        textTransform: "none",
-                        fontWeight: 900,
-                        borderRadius: 999,
-                        px: 2.25,
-                        height: 44,
-                        boxShadow: "0px 10px 18px rgba(0,0,0,0.10)",
-                      }}
-                    >
-                      Edit Profile
-                    </Button>
-                  </Box>
-
-                  {/* Medication card */}
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: `1px solid ${alnuTheme.colors.border.light}`,
-                      bgcolor: "#fff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 2,
-                      }}
-                    >
-                      <Box>
-                        <Typography sx={labelSx}>Medication</Typography>
-                        <Typography sx={{ ...valueSx, fontSize: 15.5 }}>
-                          Wegovy
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography sx={labelSx}>Duration</Typography>
-                        <Typography sx={{ ...valueSx, fontSize: 15.5 }}>
-                          5 Months
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Paper>
-
-                  {/* Dose card */}
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: `1px solid ${alnuTheme.colors.border.light}`,
-                      bgcolor: "#fff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gap: 2,
-                      }}
-                    >
-                      <Box>
-                        <Typography sx={labelSx}>Dose</Typography>
-                        <Typography sx={{ ...valueSx, fontSize: 15.5 }}>
-                          5.0 mg
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography sx={labelSx}>Duration</Typography>
-                        <Typography sx={{ ...valueSx, fontSize: 15.5 }}>
-                          3 Months
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography sx={labelSx}>Type</Typography>
-                        <Typography sx={{ ...valueSx, fontSize: 15.5 }}>
-                          Injection
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Paper>
-
-                  {/* ✅ Side effects card (smaller list) */}
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: `1px solid ${alnuTheme.colors.border.light}`,
-                      bgcolor: "#fff",
-                    }}
-                  >
-                    <Typography
-                      sx={{ ...labelSx, fontSize: 13, fontWeight: 900, mb: 1 }}
-                    >
-                      Recurring Side Effects
-                    </Typography>
-
-                    <Box
-                      component="ul"
-                      sx={{
-                        m: 0,
-                        pl: 2.25,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 0.6,
-                        fontSize: 13.5,
-                        fontWeight: 800,
-                        color: alnuTheme.colors.text.primary,
-                      }}
-                    >
-                      <li>Nausea (3x, mild)</li>
-                      <li>Constipation (1x, mild)</li>
-                    </Box>
-                  </Paper>
-                </Box>
+                ))}
               </Box>
             );
           })()}
+
+          <Divider />
+
+          {/* ── ROW 3: Medication + Dose + Side Effects ── */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: isMdDown ? "1fr" : "1fr 1.2fr 1fr",
+              gap: 0,
+              pt: 2,
+            }}
+          >
+            {/* Medication */}
+            <Box
+              sx={{
+                pr: { xs: 0, md: 2.5 },
+                borderRight: isMdDown
+                  ? "none"
+                  : `1px solid ${alnuTheme.colors.border.light}`,
+                pb: { xs: 2, md: 0 },
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: alnuTheme.colors.text.primary,
+                  mb: 1.5,
+                }}
+              >
+                Medication
+              </Typography>
+              <Box sx={{ display: "flex", gap: 4 }}>
+                <Box>
+                  <Typography
+                    sx={{ fontSize: 11.5, fontWeight: 800, color: alnuTheme.colors.text.tertiary, textTransform: "uppercase", letterSpacing: 0.3, mb: 0.4 }}
+                  >
+                    Name
+                  </Typography>
+                  <Typography sx={{ fontSize: 14.5, fontWeight: 900, color: alnuTheme.colors.text.primary }}>
+                    {profile.medication}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ fontSize: 11.5, fontWeight: 800, color: alnuTheme.colors.text.tertiary, textTransform: "uppercase", letterSpacing: 0.3, mb: 0.4 }}
+                  >
+                    Duration
+                  </Typography>
+                  <Typography sx={{ fontSize: 14.5, fontWeight: 900, color: alnuTheme.colors.text.primary }}>
+                    {profile.medicationDuration}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Dose */}
+            <Box
+              sx={{
+                px: { xs: 0, md: 2.5 },
+                borderRight: isMdDown
+                  ? "none"
+                  : `1px solid ${alnuTheme.colors.border.light}`,
+                pb: { xs: 2, md: 0 },
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: alnuTheme.colors.text.primary,
+                  mb: 1.5,
+                }}
+              >
+                Current Dose
+              </Typography>
+              <Box sx={{ display: "flex", gap: 4 }}>
+                <Box>
+                  <Typography
+                    sx={{ fontSize: 11.5, fontWeight: 800, color: alnuTheme.colors.text.tertiary, textTransform: "uppercase", letterSpacing: 0.3, mb: 0.4 }}
+                  >
+                    Amount
+                  </Typography>
+                  <Typography sx={{ fontSize: 14.5, fontWeight: 900, color: alnuTheme.colors.text.primary }}>
+                    {profile.doseAmount}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ fontSize: 11.5, fontWeight: 800, color: alnuTheme.colors.text.tertiary, textTransform: "uppercase", letterSpacing: 0.3, mb: 0.4 }}
+                  >
+                    Duration
+                  </Typography>
+                  <Typography sx={{ fontSize: 14.5, fontWeight: 900, color: alnuTheme.colors.text.primary }}>
+                    {profile.doseDuration}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ fontSize: 11.5, fontWeight: 800, color: alnuTheme.colors.text.tertiary, textTransform: "uppercase", letterSpacing: 0.3, mb: 0.4 }}
+                  >
+                    Type
+                  </Typography>
+                  <Typography sx={{ fontSize: 14.5, fontWeight: 900, color: alnuTheme.colors.text.primary }}>
+                    {profile.doseType}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Side Effects */}
+            <Box sx={{ pl: { xs: 0, md: 2.5 } }}>
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: alnuTheme.colors.text.primary,
+                  mb: 1.5,
+                }}
+              >
+                Recurring Side Effects
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.75,
+                }}
+              >
+                {profile.sideEffects.map((se) => (
+                  <Box
+                    key={se}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        minWidth: 6,
+                        borderRadius: "50%",
+                        bgcolor: alnuTheme.colors.primary[500],
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        color: alnuTheme.colors.text.primary,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {se}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          </Box>
         </Paper>
 
         {/* PATIENT INSIGHTS */}
@@ -1490,7 +1311,7 @@ export default function PatientProfilePage() {
                 Weight Loss Journey Summary
               </Typography>
 
-              <SummaryCard body="Steady weight loss over the past 5 months." />
+              <SummaryCard body={profile.weightLossSummary} />
             </Box>
 
             {/* Adherence */}
@@ -1506,7 +1327,7 @@ export default function PatientProfilePage() {
                 Adherence Summary
               </Typography>
 
-              <SummaryCard body="Medication taken consistently with no missed doses reported." />
+              <SummaryCard body={profile.adherenceSummary} />
             </Box>
 
             {/* Nutrition */}
@@ -1522,7 +1343,7 @@ export default function PatientProfilePage() {
                 Nutrition Summary
               </Typography>
 
-              <SummaryCard body="Meeting protein goals consistently with opportunity to improve fiber intake." />
+              <SummaryCard body={profile.nutritionSummary} />
             </Box>
           </Box>
 
@@ -1572,11 +1393,11 @@ export default function PatientProfilePage() {
                 </Box>
               </Box>
 
-              <InsightChart tab={tab} range={range} />
+              <InsightChart tab={tab} range={range} chartData={profile.chartDataByRange} />
             </Box>
 
             {/* Right: interactive chat */}
-            <ChatBotPanel />
+            <ChatBotPanel patientName={profile.name} />
           </Box>
         </Box>
 
@@ -1597,7 +1418,7 @@ export default function PatientProfilePage() {
           >
             <DataTable
               title={undefined}
-              rows={historyRows}
+              rows={profile.historyRows}
               columns={historyColumns}
               height={360}
               showToolbar={false}
@@ -1608,6 +1429,32 @@ export default function PatientProfilePage() {
           </Paper>
         </Box>
       </Box>
+      <Dialog 
+        open={modalConfig.open} 
+        onClose={() => setModalConfig({ ...modalConfig, open: false })}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 900, fontSize: 18 }}>
+          {modalConfig.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 14, color: alnuTheme.colors.text.secondary, lineHeight: 1.6 }}>
+            {modalConfig.content}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setModalConfig({ ...modalConfig, open: false })}
+            variant="contained"
+            sx={{ bgcolor: alnuTheme.colors.primary[950], "&:hover": { bgcolor: alnuTheme.colors.primary[900] }, textTransform: 'none', fontWeight: 800, borderRadius: 2 }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </PageShell>
   );
 }
